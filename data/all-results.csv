@@ -1,0 +1,26 @@
+"name","accuracy","predicted","certainty","score","Dem Score","Rep Score"
+"weka.classifiers.bayes.NaiveBayes",0.6666666667,"Republican",1,0.6666666667,0.3333333333,0.6666666667
+"weka.classifiers.trees.NBTree",0.6666666667,"Republican",0.885,0.59,0.3333333333,0.6666666667
+"weka.classifiers.bayes.NaiveBayesUpdateable",0.5555555556,"Republican",1,0.5555555556,0.4444444444,0.5555555556
+"weka.classifiers.functions.Logistic",0.5555555556,"Democrat",0.937,0.5205555556,0.5555555556,0.4444444444
+"weka.classifiers.lazy.KStar",0.5555555556,"Republican",1,0.5555555556,0.4444444444,0.5555555556
+"weka.classifiers.lazy.LWL",0.5555555556,"Democrat",1,0.5555555556,0.5555555556,0.4444444444
+"weka.classifiers.rules.PART",0.5555555556,"Democrat",1,0.5555555556,0.5555555556,0.4444444444
+"weka.classifiers.trees.ADTree",0.5555555556,"Democrat",0.661,0.3672222222,0.5555555556,0.4444444444
+"weka.classifiers.trees.J48",0.5555555556,"Democrat",1,0.5555555556,0.5555555556,0.4444444444
+"weka.classifiers.functions.LibSVM",0.4444444444,"Republican",1,0.4444444444,0.5555555556,0.4444444444
+"weka.classifiers.functions.MultilayerPerceptron",0.4444444444,"Republican",0.608,0.2702222222,0.5555555556,0.4444444444
+"weka.classifiers.functions.SMO",0.4444444444,"Republican",1,0.4444444444,0.5555555556,0.4444444444
+"weka.classifiers.functions.VotedPerceptron",0.4444444444,"Democrat",0.5,0.2222222222,0.4444444444,0.5555555556
+"weka.classifiers.lazy.IB1",0.4444444444,"Democrat",1,0.4444444444,0.4444444444,0.5555555556
+"weka.classifiers.lazy.IBk",0.4444444444,"Democrat",0.917,0.4075555556,0.4444444444,0.5555555556
+"weka.classifiers.misc.HyperPipes",0.4444444444,"Republican",0.505,0.2244444444,0.5555555556,0.4444444444
+"weka.classifiers.rules.NNge",0.4444444444,"Democrat",1,0.4444444444,0.4444444444,0.5555555556
+"weka.classifiers.rules.OneR",0.4444444444,"Democrat",1,0.4444444444,0.4444444444,0.5555555556
+"weka.classifiers.trees.DecisionStump",0.4444444444,"Democrat",1,0.4444444444,0.4444444444,0.5555555556
+"weka.classifiers.trees.RandomForest",0.4444444444,"Republican",0.598,0.2657777778,0.5555555556,0.4444444444
+"weka.classifiers.rules.DecisionTable",0.3333333333,"Democrat",0.8,0.2666666667,0.3333333333,0.6666666667
+"weka.classifiers.meta.RacedIncrementalLogitBoost",0.2222222222,"Democrat",0.5,0.1111111111,0.2222222222,0.7777777778
+"weka.classifiers.rules.Ridor",0.2222222222,"Democrat",1,0.2222222222,0.2222222222,0.7777777778
+"weka.classifiers.rules.ZeroR",0.2222222222,"Democrat",0.5,0.1111111111,0.2222222222,0.7777777778
+,,,,,0.4490740741,0.5509259259
