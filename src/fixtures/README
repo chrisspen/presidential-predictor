@@ -1,0 +1,32 @@
+Files
+-----
+
+/home/chris/git/presidential-predictor/src/fixtures/presidential_candidates_2016.ods
+
+    The corpus used to make a prediction for the 2016 election.
+
+/home/chris/git/presidential-predictor/src/fixtures/presidential_candidates_2016_extended.ods
+
+    Original corpus extended to include elections going back to 1944. Does not improve prediction, due to lots of missing variables in older elections.
+
+/home/chris/git/presidential-predictor/src/fixtures/presidential_candidates_current.ods
+
+    Primary training corpus used for future elections, only going back 30 years.
+
+/home/chris/git/presidential-predictor/src/fixtures/presidential_elections.csv
+
+    Record of actual election outcomes. No predictions.
+
+Format
+------
+
+You'll see several columns like "Won NH", "Vote NH", and "Win Margin NH".
+
+These mean:
+
+    "Won X" = the candidate won this state during the primaries
+
+    "Vote X" = the percent of the vote in this state that they won by during the primaries
+
+    "Win Margin X" = the difference between the percent they won by minus their opponent's percent of the vote
+
