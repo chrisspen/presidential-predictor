@@ -4,10 +4,11 @@ The prediction of each classifier, as well as the classifier's historical accura
 
 As new data becomes available, update:
 
-    src/fixtures/presidential_candidates_current.ods
+    src/fixtures/presidential_candidates_{year}.ods
 
 and then to regenerate the predictions, run:
 
-    ./buildall.sh
+    ./init_virtualenv.sh
+    ./run.sh
 
-The results will be written to `data/all-results.csv`.
+The results will be written to `data/all-results-{year}.csv`.

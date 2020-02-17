@@ -10,6 +10,8 @@ import copy
 from collections import defaultdict
 import tempfile
 import commands
+from datetime import date
+from glob import glob
 # from pprint import pprint
 
 from weka.arff import ArffFile, Nom, Num, Int, MISSING
@@ -31,9 +33,9 @@ FIXTURES_DIR = os.path.join(PROJECT_DIR, '../fixtures')
 # PRESIDENTIAL_CANDIDATES_SOURCE = 'presidential_candidates_current.ods'
 
 # Experimental data.
-PRESIDENTIAL_CANDIDATES_SOURCE = 'presidential_candidates_2016_extended.ods'
+PRESIDENTIAL_CANDIDATES_SOURCE = 'presidential_candidates_{year}_*.ods'
 
-OUTPUT_FN = 'all-results.csv'
+OUTPUT_FN = 'all-results-{year}.csv'
 
 def spreadsheet_to_csv(fn):
     """
@@ -201,37 +203,35 @@ def walk_classifier(name, ckargs=None):
     final_query_lines = []
 
     # Build training data.
-    #training_data = ArffFile(relation='presidential-candidates')
-    fn = os.path.join(FIXTURES_DIR, PRESIDENTIAL_CANDIDATES_SOURCE)
-    print('Reading %s...' % fn)
-    fn2 = spreadsheet_to_csv(fn)
-    i = 0
-    for line in read_raw_csv(fn2):
-        i += 1
-        print('line:', i, line)
-        #line = validate_line(line)
+    year = date.today().year
+    fn_pattern = os.path.join(FIXTURES_DIR, PRESIDENTIAL_CANDIDATES_SOURCE.format(year=year))
+    for fn in glob(fn_pattern):
+        print('Reading %s...' % fn)
+        fn2 = spreadsheet_to_csv(fn)
+        i = 0
+        for line in read_raw_csv(fn2):
+            i += 1
+            print('line:', i, line)
 
-        year = int(line['Election'].value)
-        #print(year
+            year = int(line['Election'].value)
 
-        evaluation_sets.setdefault(year, [[], [], []])
+            evaluation_sets.setdefault(year, [[], [], []])
 
-        if line['Won'].value != MISSING:
-            #training_data.append(line)
+            if line['Won'].value != MISSING:
 
-            # Add line to test set.
-            test_line = copy.deepcopy(line)
-            evaluation_sets[year][2].append(test_line['Won'].value)
-            test_line['Won'].value = MISSING
-            evaluation_sets[year][1].append(test_line)
+                # Add line to test set.
+                test_line = copy.deepcopy(line)
+                evaluation_sets[year][2].append(test_line['Won'].value)
+                test_line['Won'].value = MISSING
+                evaluation_sets[year][1].append(test_line)
 
-            # Add line to all future sets.
-            for other_year in evaluation_sets:
-                if year < other_year:
-                    evaluation_sets[other_year][0].append(line)
+                # Add line to all future sets.
+                for other_year in evaluation_sets:
+                    if year < other_year:
+                        evaluation_sets[other_year][0].append(line)
 
-        else:
-            final_query_lines.append(line)
+            else:
+                final_query_lines.append(line)
 
     accuracy = []
 
@@ -342,14 +342,15 @@ def main(stop_on_error=False, **kwargs):
     fieldnames = ['Name', 'Accuracy', 'Predicted', 'Certainty', 'Error', 'Dem Score', 'Rep Score']
     os.chdir(DATA_DIR)
     error_count = 0
-    xl_fn = 'all-results.xlsx'
+    year = date.today().year
+    xl_fn = 'all-results-{year}.xlsx'.format(year=year)
     workbook = xlsxwriter.Workbook(xl_fn)
     worksheet = workbook.add_worksheet()
     row = 0
     for col, fieldname in enumerate(fieldnames):
         worksheet.write(row, col, fieldname)
     row += 1
-    with open(OUTPUT_FN, 'w') as fout:
+    with open(OUTPUT_FN.format(year=year), 'w') as fout:
         results = csv.DictWriter(fout, fieldnames=fieldnames)
         results.writerow(dict(zip(fieldnames, fieldnames)))
         for kwargs in names:
