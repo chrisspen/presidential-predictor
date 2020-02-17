@@ -11,4 +11,6 @@ and then to regenerate the predictions, run:
     ./init_virtualenv.sh
     ./run.sh
 
+This will load all training data, iterate over all Weka classifiers, train and predict using each classifier.
+
 The results will be written to `data/all-results-{year}.csv`.

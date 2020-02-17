@@ -9,7 +9,7 @@ import csv
 import copy
 from collections import defaultdict
 import tempfile
-import commands
+import subprocess
 from datetime import date
 from glob import glob
 # from pprint import pprint
@@ -35,7 +35,7 @@ FIXTURES_DIR = os.path.join(PROJECT_DIR, '../fixtures')
 # Experimental data.
 PRESIDENTIAL_CANDIDATES_SOURCE = 'presidential_candidates_{year}_*.ods'
 
-OUTPUT_FN = 'all-results-{year}.csv'
+OUTPUT_FN = 'all-results-{year}-{combo_name}.csv'
 
 def spreadsheet_to_csv(fn):
     """
@@ -51,7 +51,7 @@ def spreadsheet_to_csv(fn):
     cmd = 'ssconvert "%s" "%s"' % (fn, outfn)
     print('Converting %s to %s...' % (fn, outfn))
     print(cmd)
-    status, output = commands.getstatusoutput(cmd)
+    status, output = subprocess.getstatusoutput(cmd)
     assert os.path.isfile(outfn), 'Output file "%s" was not generated:\n\n%s' % (outfn, output)
 
     return outfn
@@ -71,6 +71,13 @@ def validate_line(line, prefix=''):
         'Additional Source 1',
         'Additional Source 3',
         'Additional Source 2',
+        'Has Presence In Room',
+        'Get Along With Anyone',
+        'Makes You Feel Comfortable',
+        'Leads A Group Effectively',
+        'Charisma Score',
+        'Smiles Often',
+        'Ability To Influence'
     ])
 
     states = ['IA', 'NH', 'SC', 'NV', 'OH']
@@ -122,6 +129,8 @@ def validate_line(line, prefix=''):
     new_line['Age Difference'] = Int(int(line['Age Difference']))
     new_line['Incumbent Job Approval Rating'] = Int(int(line['Incumbent Job Approval Rating']))
 
+    # new_line['Charisma Score'] = Num(line['Charisma Score'])
+
     new_line['ID'] = Nom(line['ID'])
 
     #new_line['Election'] = Nom(int(line['Election']))
@@ -137,7 +146,7 @@ def validate_line(line, prefix=''):
     all_fields = all_fields.difference(new_line)
     all_fields = all_fields.difference(ignore_fields)
     if all_fields:
-        raise Exception, 'Unprocessed fields: %s' % all_fields
+        raise Exception('Unprocessed fields: %s' % all_fields)
 
     # print('A1')
     # pprint(new_line, indent=4)
@@ -196,7 +205,7 @@ def read_raw_csv(filename):
             yield final_data
 
 
-def walk_classifier(name, ckargs=None):
+def walk_classifier(name, data_fn, ckargs=None):
 
     evaluation_sets = {} # {year: [training_list, test_list, expected_list]}
 
@@ -204,34 +213,33 @@ def walk_classifier(name, ckargs=None):
 
     # Build training data.
     year = date.today().year
-    fn_pattern = os.path.join(FIXTURES_DIR, PRESIDENTIAL_CANDIDATES_SOURCE.format(year=year))
-    for fn in glob(fn_pattern):
-        print('Reading %s...' % fn)
-        fn2 = spreadsheet_to_csv(fn)
-        i = 0
-        for line in read_raw_csv(fn2):
-            i += 1
-            print('line:', i, line)
+    fn = data_fn
+    print('Reading %s...' % fn)
+    fn2 = spreadsheet_to_csv(fn)
+    i = 0
+    for line in read_raw_csv(fn2):
+        i += 1
+        print('line:', i, line)
 
-            year = int(line['Election'].value)
+        year = int(line['Election'].value)
 
-            evaluation_sets.setdefault(year, [[], [], []])
+        evaluation_sets.setdefault(year, [[], [], []])
 
-            if line['Won'].value != MISSING:
+        if line['Won'].value != MISSING:
 
-                # Add line to test set.
-                test_line = copy.deepcopy(line)
-                evaluation_sets[year][2].append(test_line['Won'].value)
-                test_line['Won'].value = MISSING
-                evaluation_sets[year][1].append(test_line)
+            # Add line to test set.
+            test_line = copy.deepcopy(line)
+            evaluation_sets[year][2].append(test_line['Won'].value)
+            test_line['Won'].value = MISSING
+            evaluation_sets[year][1].append(test_line)
 
-                # Add line to all future sets.
-                for other_year in evaluation_sets:
-                    if year < other_year:
-                        evaluation_sets[other_year][0].append(line)
+            # Add line to all future sets.
+            for other_year in evaluation_sets:
+                if year < other_year:
+                    evaluation_sets[other_year][0].append(line)
 
-            else:
-                final_query_lines.append(line)
+        else:
+            final_query_lines.append(line)
 
     accuracy = []
 
@@ -241,7 +249,7 @@ def walk_classifier(name, ckargs=None):
     # Evaluate each evaluation set.
     #pprint(evaluation_sets, indent=4)
     print('%i evaluation_sets.' % len(evaluation_sets))
-    for year, data in sorted(evaluation_sets.iteritems()):
+    for year, data in sorted(evaluation_sets.items()):
         raw_training_data, raw_testing_data, prediction_values = data
         print('Evaluation set:', year, len(raw_training_data), len(raw_testing_data), len(prediction_values))
 
@@ -343,50 +351,57 @@ def main(stop_on_error=False, **kwargs):
     os.chdir(DATA_DIR)
     error_count = 0
     year = date.today().year
-    xl_fn = 'all-results-{year}.xlsx'.format(year=year)
-    workbook = xlsxwriter.Workbook(xl_fn)
-    worksheet = workbook.add_worksheet()
-    row = 0
-    for col, fieldname in enumerate(fieldnames):
-        worksheet.write(row, col, fieldname)
-    row += 1
-    with open(OUTPUT_FN.format(year=year), 'w') as fout:
-        results = csv.DictWriter(fout, fieldnames=fieldnames)
-        results.writerow(dict(zip(fieldnames, fieldnames)))
-        for kwargs in names:
-            acc, pred_cls, cert, error = '?', '?', '?', ''
-            try:
-                acc, pred_cls, cert = walk_classifier(**kwargs)
-            except Exception as e:
-                if stop_on_error:
-                    raise
-                error_count += 1
-                print('Error!', e, file=sys.stderr)
-                error = str(e).strip().split('\n')[0]
-            print('acc, pred_cls, cert=', acc, pred_cls, cert)
-            if acc != MISSING:
-                results.writerow(dict(
-                    Name=kwargs['name'],
-                    Accuracy=acc,
-                    Predicted=pred_cls,
-                    Certainty=cert,
-                    Error=error,
-                ))
-                print('row:', row)
-                worksheet.write(row, 0, kwargs['name'])
-                worksheet.write(row, 1, acc)
-                worksheet.write(row, 2, pred_cls)
-                worksheet.write(row, 3, cert)
-                worksheet.write(row, 4, error)
-                print('col:', xlsxwriter.utility.xl_col_to_name(5))
-                worksheet.write_formula('%s%i' % (xlsxwriter.utility.xl_col_to_name(5), row+1), '=IF(C{i}="Democrat", B{i}, (1-B{i}))'.format(i=row+1))
-                worksheet.write_formula('%s%i' % (xlsxwriter.utility.xl_col_to_name(6), row+1), '=IF(C{i}="Republican", B{i}, (1-B{i}))'.format(i=row+1))
-                row += 1
-            fout.flush()
-    worksheet.write_formula('%s%i' % (xlsxwriter.utility.xl_col_to_name(5), row+1), '=AVERAGE(F2:F{i})'.format(i=row))
-    worksheet.write_formula('%s%i' % (xlsxwriter.utility.xl_col_to_name(6), row+1), '=AVERAGE(G2:G{i})'.format(i=row))
-    workbook.close()
-    print('Results written to %s/%s.' % (DATA_DIR, OUTPUT_FN))
+
+    fn_pattern = os.path.join(FIXTURES_DIR, PRESIDENTIAL_CANDIDATES_SOURCE.format(year=year))
+    for data_fn in glob(fn_pattern):
+        combo_name = os.path.splitext(os.path.split(data_fn)[-1])[0].split('_')[-1]
+        print('combo_name:', combo_name)
+        xl_fn = 'all-results-{year}-{combo_name}.xlsx'.format(year=year, combo_name=combo_name)
+        workbook = xlsxwriter.Workbook(xl_fn)
+        worksheet = workbook.add_worksheet()
+        row = 0
+        for col, fieldname in enumerate(fieldnames):
+            worksheet.write(row, col, fieldname)
+        row += 1
+        output_fn = OUTPUT_FN.format(year=year, combo_name=combo_name)
+        with open(output_fn, 'w') as fout:
+            results = csv.DictWriter(fout, fieldnames=fieldnames)
+            results.writerow(dict(zip(fieldnames, fieldnames)))
+            for kwargs in names:
+                acc, pred_cls, cert, error = '?', '?', '?', ''
+                try:
+                    acc, pred_cls, cert = walk_classifier(data_fn=data_fn, **kwargs)
+                except Exception as e:
+                    if stop_on_error:
+                        raise
+                    error_count += 1
+                    print('Error walking classifier with kwargs=%s!' % kwargs, e, file=sys.stderr)
+                    error = str(e).strip().split('\n')[0]
+                print('acc, pred_cls, cert=', acc, pred_cls, cert)
+                if acc != MISSING:
+                    results.writerow(dict(
+                        Name=kwargs['name'],
+                        Accuracy=acc,
+                        Predicted=pred_cls,
+                        Certainty=cert,
+                        Error=error,
+                    ))
+                    print('row:', row)
+                    worksheet.write(row, 0, kwargs['name'])
+                    worksheet.write(row, 1, acc)
+                    worksheet.write(row, 2, pred_cls)
+                    worksheet.write(row, 3, cert)
+                    worksheet.write(row, 4, error)
+                    print('col:', xlsxwriter.utility.xl_col_to_name(5))
+                    worksheet.write_formula('%s%i' % (xlsxwriter.utility.xl_col_to_name(5), row+1), '=IF(C{i}="Democrat", B{i}, (1-B{i}))'.format(i=row+1))
+                    worksheet.write_formula('%s%i' % (xlsxwriter.utility.xl_col_to_name(6), row+1), '=IF(C{i}="Republican", B{i}, (1-B{i}))'.format(i=row+1))
+                    row += 1
+                fout.flush()
+        worksheet.write_formula('%s%i' % (xlsxwriter.utility.xl_col_to_name(5), row+1), '=AVERAGE(F2:F{i})'.format(i=row))
+        worksheet.write_formula('%s%i' % (xlsxwriter.utility.xl_col_to_name(6), row+1), '=AVERAGE(G2:G{i})'.format(i=row))
+        workbook.close()
+        print('Results written to %s/%s.' % (DATA_DIR, output_fn))
+
     if error_count:
         print('Some errors were encountered. If these are coming from a handful of classifiers that could not handle the data, you can ignore these.')
         sys.exit(1)
